@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -16,30 +15,30 @@ using Newtonsoft.Json;
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializerAttribute(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
-namespace SampleLambdaBlog
-{
-    public class Functions
-    {
+namespace SampleLambdaBlog {
+    public class Functions {
+
+        //--- Constants ---
+        public const string ID_QUERY_STRING_NAME = "Id";
+
         // This const is the name of the environment variable that the serverless.template will use to set
         // the name of the DynamoDB table used to store blog posts.
-        const string TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP = "BlogTable";
+        private const string TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP = "BlogTable";
 
-        public const string ID_QUERY_STRING_NAME = "Id";
-        IDynamoDBContext DDBContext { get; set; }
+        //--- Fields ---
+        private IDynamoDBContext DDBContext { get; set; }
 
         /// <summary>
         /// Default constructor that Lambda will invoke.
         /// </summary>
-        public Functions()
-        {
-            // Check to see if a table name was passed in through environment variables and if so 
+        public Functions() {
+
+            // Check to see if a table name was passed in through environment variables and if so
             // add the table mapping.
             var tableName = System.Environment.GetEnvironmentVariable(TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP);
-            if(!string.IsNullOrEmpty(tableName))
-            {
+            if(!string.IsNullOrEmpty(tableName)) {
                 AWSConfigsDynamoDB.Context.TypeMappings[typeof(Blog)] = new Amazon.Util.TypeMapping(typeof(Blog), tableName);
             }
-
             var config = new DynamoDBContextConfig { Conversion = DynamoDBEntryConversion.V2 };
             this.DDBContext = new DynamoDBContext(new AmazonDynamoDBClient(), config);
         }
@@ -49,13 +48,10 @@ namespace SampleLambdaBlog
         /// </summary>
         /// <param name="ddbClient"></param>
         /// <param name="tableName"></param>
-        public Functions(IAmazonDynamoDB ddbClient, string tableName)
-        {
-            if (!string.IsNullOrEmpty(tableName))
-            {
+        public Functions(IAmazonDynamoDB ddbClient, string tableName) {
+            if (!string.IsNullOrEmpty(tableName)) {
                 AWSConfigsDynamoDB.Context.TypeMappings[typeof(Blog)] = new Amazon.Util.TypeMapping(typeof(Blog), tableName);
             }
-
             var config = new DynamoDBContextConfig { Conversion = DynamoDBEntryConversion.V2 };
             this.DDBContext = new DynamoDBContext(ddbClient, config);
         }
@@ -65,20 +61,16 @@ namespace SampleLambdaBlog
         /// </summary>
         /// <param name="request"></param>
         /// <returns>The list of blogs</returns>
-        public async Task<APIGatewayProxyResponse> GetBlogsAsync(APIGatewayProxyRequest request, ILambdaContext context)
-        {
+        public async Task<APIGatewayProxyResponse> GetBlogsAsync(APIGatewayProxyRequest request, ILambdaContext context) {
             context.Logger.LogLine("Getting blogs");
             var search = this.DDBContext.ScanAsync<Blog>(null);
             var page = await search.GetNextSetAsync();
             context.Logger.LogLine($"Found {page.Count} blogs");
-
-            var response = new APIGatewayProxyResponse
-            {
+            var response = new APIGatewayProxyResponse {
                 StatusCode = (int)HttpStatusCode.OK,
                 Body = JsonConvert.SerializeObject(page),
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
             };
-
             return response;
         }
 
@@ -87,35 +79,26 @@ namespace SampleLambdaBlog
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        public async Task<APIGatewayProxyResponse> GetBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
-        {
+        public async Task<APIGatewayProxyResponse> GetBlogAsync(APIGatewayProxyRequest request, ILambdaContext context) {
             var blogId = request?.PathParameters[ID_QUERY_STRING_NAME];
-            if (string.IsNullOrEmpty(blogId))
+            if (string.IsNullOrEmpty(blogId)) {
                 blogId = request?.QueryStringParameters[ID_QUERY_STRING_NAME];
-
-            if (string.IsNullOrEmpty(blogId))
-            {
-                return new APIGatewayProxyResponse
-                {
+            }
+            if (string.IsNullOrEmpty(blogId)) {
+                return new APIGatewayProxyResponse {
                     StatusCode = (int)HttpStatusCode.BadRequest,
                     Body = "Missing required parameter blogId"
                 };
             }
-
             context.Logger.LogLine($"Getting blog {blogId}");
             var blog = await DDBContext.LoadAsync<Blog>(blogId);
             context.Logger.LogLine($"Found blog: {blog != null}");
-
-            if (blog == null)
-            {
-                return new APIGatewayProxyResponse
-                {
+            if (blog == null) {
+                return new APIGatewayProxyResponse {
                     StatusCode = (int)HttpStatusCode.NotFound
                 };
             }
-
-            var response = new APIGatewayProxyResponse
-            {
+            var response = new APIGatewayProxyResponse {
                 StatusCode = (int)HttpStatusCode.OK,
                 Body = JsonConvert.SerializeObject(blog),
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
@@ -128,17 +111,13 @@ namespace SampleLambdaBlog
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        public async Task<APIGatewayProxyResponse> AddBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
-        {
+        public async Task<APIGatewayProxyResponse> AddBlogAsync(APIGatewayProxyRequest request, ILambdaContext context) {
             var blog = JsonConvert.DeserializeObject<Blog>(request?.Body);
             blog.Id = Guid.NewGuid().ToString();
             blog.CreatedTimestamp = DateTime.Now;
-
             context.Logger.LogLine($"Saving blog with id {blog.Id}");
             await DDBContext.SaveAsync<Blog>(blog);
-
-            var response = new APIGatewayProxyResponse
-            {
+            var response = new APIGatewayProxyResponse {
                 StatusCode = (int)HttpStatusCode.OK,
                 Body = blog.Id.ToString(),
                 Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
@@ -150,26 +129,20 @@ namespace SampleLambdaBlog
         /// A Lambda function that removes a blog post from the DynamoDB table.
         /// </summary>
         /// <param name="request"></param>
-        public async Task<APIGatewayProxyResponse> RemoveBlogAsync(APIGatewayProxyRequest request, ILambdaContext context)
-        {
+        public async Task<APIGatewayProxyResponse> RemoveBlogAsync(APIGatewayProxyRequest request, ILambdaContext context) {
             var blogId = request?.PathParameters[ID_QUERY_STRING_NAME];
-            if (string.IsNullOrEmpty(blogId))
+            if (string.IsNullOrEmpty(blogId)) {
                 blogId = request?.QueryStringParameters[ID_QUERY_STRING_NAME];
-
-            if (string.IsNullOrEmpty(blogId))
-            {
-                return new APIGatewayProxyResponse
-                {
+            }
+            if (string.IsNullOrEmpty(blogId)) {
+                return new APIGatewayProxyResponse {
                     StatusCode = (int)HttpStatusCode.BadRequest,
                     Body = "Missing required parameter blogId"
                 };
             }
-
             context.Logger.LogLine($"Deleting blog with id {blogId}");
             await this.DDBContext.DeleteAsync<Blog>(blogId);
-
-            return new APIGatewayProxyResponse
-            {
+            return new APIGatewayProxyResponse {
                 StatusCode = (int)HttpStatusCode.OK
             };
         }

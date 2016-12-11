@@ -10,6 +10,6 @@
     "configuration": "Release",
     "framework": "netcoreapp1.0",
     "s3-prefix": "SampleLambdaBlog/",
-    "template": "serverless.template",
-    "template-parameters": ""
+    "template": "serverless.template.json",
+    "template-parameters": "ShouldCreateTable=true;BlogTableName=lambdasharp-blog"
 }
