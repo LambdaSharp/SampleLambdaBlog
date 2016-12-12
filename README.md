@@ -13,7 +13,10 @@ To begin, make sure the following tools are installed.
 4. Create a IAM user in the AWS console (e.g. `lambdasharp`)
 5. Create a `lambdasharp` AWS configuration in `~/.aws/credentials`
 
-Now you should be ready to publish
+Now you should be ready to publish!
+
+6. Go in `src/SampleLambdaBlog` and run `dotnet restore`
+7. Go in `src/SampleApiGatewayAuthenticator` and run `dotnet restore`
 
 ## Configuration
 By default, this sample blog will  create the DynamoDB table as part of the CloudFormation template. You can edit
@@ -21,6 +24,16 @@ By default, this sample blog will  create the DynamoDB table as part of the Clou
 `region`
 
 **BEWARE** by default, the API Gateway created by the CloudFormation stack is public and vulnerable to abuse!
+
+1. Create `SampleLambdaBlog-Authenticate` role
+2. Add `AWSLambdaFullAccess` as policy
+3. Add `AWSLambdaBasicExecutionRole` as policy
+4. Click `Create`
+5. In API Gateway, add `SampleLambdaBlogAuthenticate` as authorizer
+
+6. Select Cognito
+7. Create a user pool named `LambdaSharpBlogUsers`
+8. Click `Review defaults`
 
 ## Using the SampleLambdaBlog API
 
@@ -43,3 +56,4 @@ The following `curl` command will return the GUID of the new blog entry when it 
 ```
 curl -X PUT -H "Content-Type: application/json" -d '{"Name":"John","Content":"What John wrote."}' https://SampleLambdaBlog.execute-api.us-east-1.amazonaws.com/Prod/
 ```
+
