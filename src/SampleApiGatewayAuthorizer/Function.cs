@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializerAttribute(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
 
-namespace SampleApiGatewayAuthenticator {
+namespace SampleApiGatewayAuthorizer {
 
     public class Function {
 
@@ -32,9 +32,9 @@ namespace SampleApiGatewayAuthenticator {
         public AuthenticationResponse Authenticate(AuthenticationRequest authenticationRequest) {
             Console.WriteLine(JsonConvert.SerializeObject(authenticationRequest));
             if(authenticationRequest.AuthorizationToken == "foo") {
-                return GeneratePolicy("user", "Allow", authenticationRequest.MethodArn);
+                return GeneratePolicy("*", "Allow", authenticationRequest.MethodArn);
             } else {
-                return GeneratePolicy("user", "Deny", authenticationRequest.MethodArn);
+                return GeneratePolicy("*", "Deny", authenticationRequest.MethodArn);
             }
         }
     }

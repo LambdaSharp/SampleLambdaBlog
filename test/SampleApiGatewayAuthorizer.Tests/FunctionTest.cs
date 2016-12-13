@@ -2,7 +2,7 @@
 using Xunit;
 using Amazon.Lambda.TestUtilities;
 
-namespace SampleApiGatewayAuthenticator.Tests {
+namespace SampleApiGatewayAuthorizer.Tests {
     public class FunctionTest {
 
         //--- Methods ---
