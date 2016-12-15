@@ -23,6 +23,24 @@ namespace SampleLambdaAuthors {
         public const string ID_QUERY_STRING_NAME = "Id";
         private const string TABLENAME_ENVIRONMENT_VARIABLE_LOOKUP = "AuthorTable";
 
+        //--- Class Methods ---
+        private static AuthenticationResponse GeneratePolicy(string principalId, string effect, string resource) {
+            var authResponse = new AuthenticationResponse {
+                PrincipalId = principalId,
+                PolicyDocument = new PolicyDocument {
+                    Version = "2012-10-17",
+                    Statement = new[] {
+                        new PolicyStatement {
+                            Action = "execute-api:Invoke",
+                            Effect = effect,
+                            Resource = resource
+                        }
+                    }
+                }
+            };
+            return authResponse;
+        }
+
         //--- Fields ---
         private IDynamoDBContext DDBContext { get; set; }
 
@@ -76,6 +94,24 @@ namespace SampleLambdaAuthors {
         }
 
         /// <summary>
+        /// A Lambda function that returns back a page worth of authors.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>The list of blogs</returns>
+        public async Task<APIGatewayProxyResponse> GetAuthorsAsync(APIGatewayProxyRequest request, ILambdaContext context) {
+            context.Logger.LogLine("Getting authors");
+            var search = this.DDBContext.ScanAsync<Author>(null);
+            var page = await search.GetNextSetAsync();
+            context.Logger.LogLine($"Found {page.Count} authors");
+            var response = new APIGatewayProxyResponse {
+                StatusCode = (int)HttpStatusCode.OK,
+                Body = JsonConvert.SerializeObject(page),
+                Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } }
+            };
+            return response;
+        }
+
+        /// <summary>
         /// A Lambda function that removes an author from the DynamoDB table.
         /// </summary>
         /// <param name="request"></param>
@@ -95,6 +131,15 @@ namespace SampleLambdaAuthors {
             return new APIGatewayProxyResponse {
                 StatusCode = (int)HttpStatusCode.OK
             };
+        }
+
+        public Task<AuthenticationResponse> AuthorizeAsync(AuthenticationRequest authenticationRequest) {
+            Console.WriteLine(JsonConvert.SerializeObject(authenticationRequest));
+            if(authenticationRequest.AuthorizationToken == "foo") {
+                return Task.FromResult(GeneratePolicy("*", "Allow", authenticationRequest.MethodArn));
+            } else {
+                return Task.FromResult(GeneratePolicy("*", "Deny", authenticationRequest.MethodArn));
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace SampleApiGatewayAuthorizer {
+namespace SampleLambdaAuthors {
 
     public class AuthenticationRequest {
 

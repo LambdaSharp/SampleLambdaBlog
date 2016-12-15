@@ -1,4 +1,6 @@
-namespace SampleApiGatewayAuthorizer {
+using System.Collections.Generic;
+
+namespace SampleLambdaAuthors {
 
     public class PolicyDocument {
 

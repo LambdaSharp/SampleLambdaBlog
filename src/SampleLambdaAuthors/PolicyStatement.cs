@@ -1,4 +1,4 @@
-namespace SampleApiGatewayAuthorizer {
+namespace SampleLambdaAuthors {
 
     public class PolicyStatement {
 

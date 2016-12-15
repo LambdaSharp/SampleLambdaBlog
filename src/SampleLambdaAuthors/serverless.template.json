@@ -34,6 +34,34 @@
 
   "Resources" : {
 
+    "GetAuthors" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SampleLambdaBlog::SampleLambdaBlog.Functions::GetAuthorsAsync",
+        "Runtime": "dotnetcore1.0",
+        "CodeUri": "",
+        "Description": "Function to get a list of authors",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [ "AWSLambdaFullAccess" ],
+        "Environment" : {
+          "Variables" : {
+            "BlogTable" : { "Fn::If" : ["CreateAuthorTable", {"Ref":"AuthorTable"}, { "Ref" : "AuthorTableName" } ] }
+          }
+        },
+        "Events": {
+          "PutResource": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/",
+              "Method": "GET"
+            }
+          }
+        }
+      }
+    },
+
     "UpdateAuthor" : {
       "Type" : "AWS::Serverless::Function",
       "Properties": {
@@ -68,7 +96,7 @@
         "Handler": "SampleLambdaAuthors::SampleLambdaAuthors.Functions::RemoveAuthorAsync",
         "Runtime": "dotnetcore1.0",
         "CodeUri": "",
-        "Description": "Function to remove a author",
+        "Description": "Function to remove an author",
         "MemorySize": 256,
         "Timeout": 30,
         "Role": null,
@@ -85,6 +113,25 @@
               "Path": "/",
               "Method": "DELETE"
             }
+          }
+        }
+      }
+    },
+
+    "Authorize" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SampleLambdaAuthors::SampleLambdaAuthors.Functions::AuthorizeAsync",
+        "Runtime": "dotnetcore1.0",
+        "CodeUri": "",
+        "Description": "Function to authorize an author",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [ "AWSLambdaFullAccess" ],
+        "Environment" : {
+          "Variables" : {
+            "AuthorTable" : { "Fn::If" : ["CreateAuthorTable", {"Ref":"AuthorTable"}, { "Ref" : "AuthorTableName" } ] }
           }
         }
       }
