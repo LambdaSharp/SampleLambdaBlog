@@ -1,0 +1,117 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform" : "AWS::Serverless-2016-10-31",
+  "Description" : "AWS Serverless API that exposes the add and remove operations for a authoring platform using Amazon DynamoDB.",
+  "Parameters" : {
+    "ShouldCreateTable" : {
+      "Type" : "String",
+      "AllowedValues" : ["true", "false"],
+      "Description" : "If true then the DynamoDB authoring table will be created with the CloudFormation stack."
+    },
+    "AuthorTableName" : {
+        "Type" : "String",
+        "Description" : "Name of DynamoDB table used to store the authors. If left blank a new table will be created.",
+        "MinLength" : "0"
+    },
+    "ReadCapacity" : {
+        "Type" : "Number",
+        "Description" : "Read capacity for the DynamoDB author table.",
+        "Default" : "3",
+        "MinValue" : 1
+    },
+    "WriteCapacity" : {
+        "Type" : "Number",
+        "Description" : "Write capacity for the DynamoDB author table.",
+        "Default" : "3",
+        "MinValue" : 1
+    }
+  },
+
+  "Conditions" : {
+    "CreateAuthorTable" : {"Fn::Equals" : [{"Ref" : "ShouldCreateTable"}, "true"]},
+	  "TableNameGenerated" : {"Fn::Equals" : [{"Ref" : "AuthorTableName"}, ""]}
+  },
+
+  "Resources" : {
+
+    "UpdateAuthor" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SampleLambdaAuthors::SampleLambdaAuthors.Functions::UpdateAuthorAsync",
+        "Runtime": "dotnetcore1.0",
+        "CodeUri": "",
+        "Description": "Function to update an author",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [ "AWSLambdaFullAccess" ],
+        "Environment" : {
+          "Variables" : {
+            "AuthorTable" : { "Fn::If" : ["CreateAuthorTable", {"Ref":"AuthorTable"}, { "Ref" : "AuthorTableName" } ] }
+          }
+        },
+        "Events": {
+          "PutResource": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/",
+              "Method": "PUT"
+            }
+          }
+        }
+      }
+    },
+
+    "RemoveAuthor" : {
+      "Type" : "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "SampleLambdaAuthors::SampleLambdaAuthors.Functions::RemoveAuthorAsync",
+        "Runtime": "dotnetcore1.0",
+        "CodeUri": "",
+        "Description": "Function to remove a author",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [ "AWSLambdaFullAccess" ],
+        "Environment" : {
+          "Variables" : {
+            "AuthorTable" : { "Fn::If" : ["CreateAuthorTable", {"Ref":"AuthorTable"}, { "Ref" : "AuthorTableName" } ] }
+          }
+        },
+        "Events": {
+          "PutResource": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/",
+              "Method": "DELETE"
+            }
+          }
+        }
+      }
+    },
+
+    "AuthorTable" : {
+        "Type" : "AWS::DynamoDB::Table",
+        "Condition" : "CreateAuthorTable",
+        "Properties" : {
+            "TableName" : { "Fn::If" : ["TableNameGenerated", {"Ref" : "AWS::NoValue" }, { "Ref" : "AuthorTableName" } ] },
+            "AttributeDefinitions" : [
+              {"AttributeName" : "Id", "AttributeType" : "S"}
+            ],
+            "KeySchema"            : [
+              {"AttributeName" : "Id", "KeyType" : "HASH"}
+            ],
+            "ProvisionedThroughput" : {
+                "ReadCapacityUnits" : { "Ref" : "ReadCapacity" },
+                "WriteCapacityUnits" : { "Ref" : "WriteCapacity" }
+            }
+        }
+    }
+  },
+
+  "Outputs" : {
+    "AuthorTable" : {
+        "Value" : { "Fn::If" : ["CreateAuthorTable", {"Ref":"AuthorTable"}, { "Ref" : "AuthorTableName" } ] }
+    }
+  }
+}
